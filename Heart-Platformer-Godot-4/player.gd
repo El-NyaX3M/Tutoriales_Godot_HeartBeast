@@ -10,6 +10,7 @@ const JUMP_VELOCITY = -300.0
 #Se obtiene el valor de la gravedad por medio de una llamada de los settings de godot.
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
 @onready var animated_sprite_2d = $AnimatedSprite2D
+@onready var coyote_jump_timer = $CoyoteJumpTimer
 
 #El método _physics_process estará corriendo 60* veces por segundo.
 #* este valor puede cambiarse en los ajustes del proyecto.
@@ -25,7 +26,7 @@ func _physics_process(delta):
 	# Handle Jump.
 	#Input hace referencia a lo que se ingrese por medio del teclado
 	#Se valida si se presiona la barra espaciadora y si se está en el suelo.
-	if is_on_floor():
+	if is_on_floor() or coyote_jump_timer.time_left > 0.0:
 		if Input.is_action_just_pressed("ui_accept"):
 			velocity.y = JUMP_VELOCITY
 	else:
@@ -51,9 +52,19 @@ func _physics_process(delta):
 		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
 	
 	update_animations(direction)
+	
+	#guarda la comprobación de que el personaje está en el suelo antes de moverse con move_and_slide()
+	var was_on_floor = is_on_floor()
 	#move_and_slide permite hacer el movimiento del objeto validando colisiones con nodos estáticos
 	#este toma la variable velocity y hace el resto del trabajo.
 	move_and_slide()
+	
+	#valida que antes del movimiento se estuvo en el suelo y luego del movimiento se encuentra en el suelo
+	#SOLO es TRUE cuando se estuvo en el suelo antes de move_and_slide() y no se encuentra después en el suelo
+	#también si el personaje se encuentra bajando
+	var just_left_ledge = was_on_floor and not is_on_floor() and velocity.y >= 0
+	if just_left_ledge:
+		coyote_jump_timer.start()
 	
 func update_animations(direction):
 	if direction:
