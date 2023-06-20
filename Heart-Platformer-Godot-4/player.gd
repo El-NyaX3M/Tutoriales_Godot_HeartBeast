@@ -1,10 +1,9 @@
 extends CharacterBody2D
 
+#se mueven las variables a un nuevo recurso para tomarlo como objeto
+#luego se crea una variable que pueda obtener esos datos y siendo de tipó del nuevo recurso
+@export var movement_data : PlayerMovementData
 
-const SPEED = 100.0
-const ACCELERATION = 800.0
-const FRICTION = 1000.0
-const JUMP_VELOCITY = -300.0
 
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 #Se obtiene el valor de la gravedad por medio de una llamada de los settings de godot.
@@ -21,17 +20,17 @@ func _physics_process(delta):
 	#is_on_floor valida que hayan nodos estáticos en el lado opuesto a la propiedad Up Direction
 	#en este caso, Up Direction tiene valor 0,-1 (arriba) asi que el suelo debe estar en 0,1 (abajo)
 	if not is_on_floor():
-		velocity.y += gravity * delta
+		velocity.y += gravity * movement_data.gravity_scale * delta
 
 	# Handle Jump.
 	#Input hace referencia a lo que se ingrese por medio del teclado
 	#Se valida si se presiona la barra espaciadora y si se está en el suelo.
 	if is_on_floor() or coyote_jump_timer.time_left > 0.0:
-		if Input.is_action_just_pressed("ui_accept"):
-			velocity.y = JUMP_VELOCITY
+		if Input.is_action_just_pressed("ui_up"):
+			velocity.y = movement_data.jump_velocity
 	else:
-		if Input.is_action_just_released("ui_accept") and velocity.y < JUMP_VELOCITY / 2:
-			velocity.y = JUMP_VELOCITY / 2
+		if Input.is_action_just_released("ui_up") and velocity.y < movement_data.jump_velocity / 2:
+			velocity.y = movement_data.jump_velocity / 2
 
 	# Get the input direction and handle the movement/deceleration.
 	# As good practice, you should replace UI actions with custom gameplay actions.
@@ -46,10 +45,16 @@ func _physics_process(delta):
 		#velocity.x = direction * SPEED
 		#move_toward hace que el objeto se mueva, ingresando su posición inicial, su velocidad final y 
 		#el cambio de velocidad respecto a delta
-		velocity.x = move_toward(velocity.x, SPEED * direction, delta * ACCELERATION)
+		velocity.x = move_toward(velocity.x, movement_data.speed * direction, delta * movement_data.acceleration)
 	else:
 		#velocity.x = 0
-		velocity.x = move_toward(velocity.x, 0, FRICTION * delta)
+		if is_on_floor():
+			velocity.x = move_toward(velocity.x, 0, movement_data.friction * delta)
+		else:
+			velocity.x = move_toward(velocity.x, 0, movement_data.air_friction * delta)
+		
+	#if Input.is_action_just_pressed("ui_accept"):
+		#movement_data = load("res://FastMovementData.tres")
 	
 	update_animations(direction)
 	
